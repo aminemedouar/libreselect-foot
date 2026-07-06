@@ -54,6 +54,10 @@ def players_dataframe(players: list[Player]) -> pd.DataFrame:
     )
 
 
+def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
+    return players_dataframe(players).sort_values(["Poste", "Note"], ascending=[True, False])
+
+
 st.set_page_config(page_title="LibreSelect Foot", page_icon="⚽", layout="wide")
 
 countries = list_countries()
@@ -61,6 +65,10 @@ countries = list_countries()
 st.title("⚽ LibreSelect Foot")
 st.markdown("**Optimiseur IA de sélections nationales**")
 st.caption("Choisis un pays, analyse l'adversaire et lance une simulation tactique.")
+
+if len(countries) < 2:
+    st.warning("Ajoute au moins deux sélections nationales pour lancer une analyse comparative.")
+    st.stop()
 
 selected_country = st.selectbox("Sélection à optimiser", countries, index=0)
 available_opponents = [country for country in countries if country != selected_country]
@@ -74,7 +82,7 @@ left_col, right_col = st.columns(2)
 with left_col:
     st.subheader("Effectif disponible")
     st.dataframe(
-        players_dataframe(selected_team.players).sort_values(["Poste", "Note"], ascending=[True, False]),
+        sorted_players_dataframe(selected_team.players),
         width="stretch",
         hide_index=True,
     )
@@ -82,7 +90,7 @@ with left_col:
 with right_col:
     st.subheader("Adversaire")
     st.dataframe(
-        players_dataframe(opponent_team.players).sort_values(["Poste", "Note"], ascending=[True, False]),
+        sorted_players_dataframe(opponent_team.players),
         width="stretch",
         hide_index=True,
     )
@@ -121,9 +129,7 @@ if st.button("🚀 Lancer l'analyse IA", type="primary"):
 
     st.subheader("Sélection recommandée")
     st.dataframe(
-        players_dataframe(recommendation["recommended_selection"]).sort_values(
-            ["Poste", "Note"], ascending=[True, False]
-        ),
+        sorted_players_dataframe(recommendation["recommended_selection"]),
         width="stretch",
         hide_index=True,
     )
