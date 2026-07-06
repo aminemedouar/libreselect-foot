@@ -7,5 +7,5 @@ except Exception as exc:
     st.title("⚽ LibreSelect Foot v0.3")
     st.markdown("**L'outil le plus perfectionné pour les sélections nationales de football**")
     st.warning("Le fichier principal n'a pas pu être chargé.")
-    st.info("Vérifie que `libreselect_foot_v03_streamlit.py` est présent et que ses dépendances sont installées.")
+    st.info("Vérifiez que `libreselect_foot_v03_streamlit.py` est présent et que ses dépendances sont installées.")
     st.code(f"Erreur: {exc}")
