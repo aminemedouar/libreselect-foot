@@ -75,7 +75,7 @@ with left_col:
     st.subheader("Effectif disponible")
     st.dataframe(
         players_dataframe(selected_team.players).sort_values(["Poste", "Note"], ascending=[True, False]),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -83,7 +83,7 @@ with right_col:
     st.subheader("Adversaire")
     st.dataframe(
         players_dataframe(opponent_team.players).sort_values(["Poste", "Note"], ascending=[True, False]),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -124,7 +124,7 @@ if st.button("🚀 Lancer l'analyse IA", type="primary"):
         players_dataframe(recommendation["recommended_selection"]).sort_values(
             ["Poste", "Note"], ascending=[True, False]
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
