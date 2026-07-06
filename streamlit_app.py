@@ -5,6 +5,7 @@ from ai_tactics_engine import MatchReport, MatchSimulator, Player, TacticsRecomm
 from national_teams_db import get_team, list_countries
 
 
+@st.cache_data
 def build_players(country_name: str) -> list[Player]:
     team_data = get_team(country_name)
     return [
@@ -24,6 +25,7 @@ def build_players(country_name: str) -> list[Player]:
     ]
 
 
+@st.cache_data
 def build_team(country_name: str) -> Team:
     team_data = get_team(country_name)
     return Team(
