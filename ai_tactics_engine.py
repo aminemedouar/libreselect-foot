@@ -451,7 +451,7 @@ def run_genetic_algorithm(players_data: List[Dict], generations: int = 50):
     best_squad, _, _ = optimizer.genetic_algorithm_selection(
         opponent_team=opponent_team,
         tactics_to_test=TacticsRecommendationEngine.TACTICS,
-        generations=max(1, generations // 10),
+        generations=max(1, generations),
         population_size=10,
     )
     best_xi = sorted(best_squad, key=lambda player: player.overall, reverse=True)[:11]

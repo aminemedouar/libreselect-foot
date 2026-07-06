@@ -130,6 +130,7 @@ def get_team_players(country_name: str):
         "France": "🇫🇷 France",
         "Brésil": "🇧🇷 Brésil",
         "Argentine": "🇦🇷 Argentina",
+        "Argentina": "🇦🇷 Argentina",
         "Maroc": None,
         "Autre": None,
     }
