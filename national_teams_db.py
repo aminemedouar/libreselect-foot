@@ -122,3 +122,19 @@ def get_best_players_by_position(country_name: str, position: str, count: int = 
         players = [p for p in team['players'] if p['pos'] == position]
         return sorted(players, key=lambda x: x['rating'], reverse=True)[:count]
     return []
+
+
+def get_team_players(country_name: str):
+    """Retourne les joueurs d'un pays (nom simple ou nom avec drapeau)."""
+    aliases = {
+        "France": "🇫🇷 France",
+        "Brésil": "🇧🇷 Brésil",
+        "Argentine": "🇦🇷 Argentina",
+        "Maroc": None,
+        "Autre": None,
+    }
+    lookup_name = aliases.get(country_name, country_name)
+    team = get_team(lookup_name) if lookup_name else None
+    if not team:
+        return []
+    return team["players"]
