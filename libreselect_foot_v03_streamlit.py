@@ -18,6 +18,8 @@ st.set_page_config(
     layout="wide",
 )
 
+MAX_DISPLAYED_EVENTS = 25
+
 
 def _players_from_country(country_name: str) -> list[Player]:
     team_data = NATIONAL_TEAMS[country_name]
@@ -71,14 +73,14 @@ def _simulate_series(home_team: Team, away_team: Team, n_matches: int) -> dict:
     wins = draws = losses = 0
     home_goals = away_goals = 0
 
-    for i in range(n_matches):
-        sim = MatchSimulator(home_team=home_team, away_team=away_team, seed=100 + i)
-        hs, as_, _ = sim.simulate()
-        home_goals += hs
-        away_goals += as_
-        if hs > as_:
+    for match_index in range(n_matches):
+        sim = MatchSimulator(home_team=home_team, away_team=away_team, seed=100 + match_index)
+        home_score, away_score, _ = sim.simulate()
+        home_goals += home_score
+        away_goals += away_score
+        if home_score > away_score:
             wins += 1
-        elif hs < as_:
+        elif home_score < away_score:
             losses += 1
         else:
             draws += 1
@@ -178,9 +180,9 @@ with tab2:
 
         st.markdown("### 📜 Exemple d'événements de match")
         demo_sim = MatchSimulator(home_team=home_team, away_team=opponent_team, seed=42)
-        hs, as_, events = demo_sim.simulate()
-        st.write(f"Score exemple: **{home_country} {hs} - {as_} {away_country}**")
-        st.text("\n".join(events[:25]) if events else "Aucun événement notable.")
+        home_score, away_score, events = demo_sim.simulate()
+        st.write(f"Score exemple: **{home_country} {home_score} - {away_score} {away_country}**")
+        st.text("\n".join(events[:MAX_DISPLAYED_EVENTS]) if events else "Aucun événement notable.")
 
 with tab3:
     st.subheader("Classement des tactiques disponibles")
