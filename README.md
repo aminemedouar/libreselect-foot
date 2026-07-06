@@ -26,14 +26,14 @@ Grâce à :
 
 ### Prérequis
 ```bash
-pip install streamlit matplotlib
+pip install -r requirements.txt
 ```
 
 ### Lancement
 ```bash
 git clone https://github.com/TON-USERNAME/libreselect-foot.git
 cd libreselect-foot
-streamlit run libreselect_foot_v03_streamlit.py
+streamlit run streamlit_app.py
 ```
 
 L'application s'ouvre automatiquement dans ton navigateur.
@@ -100,7 +100,9 @@ Idées bienvenues pour les prochaines versions :
 
 ```
 libreselect-foot/
-├── libreselect_foot_v03_streamlit.py   # Application web principale (v0.3)
+├── streamlit_app.py                    # Application web principale
+├── ai_tactics_engine.py                # Moteur de simulation et recommandation IA
+├── national_teams_db.py                # Base de données des sélections nationales
 ├── LICENSE                             # Licence non-commerciale
 ├── README.md
 └── (futurs) data/, models/, etc.
