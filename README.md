@@ -22,21 +22,32 @@ Grâce à :
 
 ---
 
-## 🚀 Installation & Lancement (v0.3)
+## 🚀 Installation & Lancement
 
 ### Prérequis
 ```bash
-pip install streamlit matplotlib
+pip install -r requirements.txt
 ```
 
-### Lancement
+### Lancement local (app de test déployable)
 ```bash
 git clone https://github.com/TON-USERNAME/libreselect-foot.git
 cd libreselect-foot
-streamlit run libreselect_foot_v03_streamlit.py
+streamlit run streamlit_app.py
 ```
 
 L'application s'ouvre automatiquement dans ton navigateur.
+
+### Déploiement sur Streamlit Community Cloud
+
+1. Push le repo sur GitHub
+2. Ouvre https://share.streamlit.io/
+3. Clique sur **New app**
+4. Sélectionne ton repo + ta branche
+5. Mets **Main file path** à `streamlit_app.py`
+6. Clique sur **Deploy**
+
+Le fichier `requirements.txt` est utilisé automatiquement.
 
 ---
 
@@ -100,7 +111,8 @@ Idées bienvenues pour les prochaines versions :
 
 ```
 libreselect-foot/
-├── libreselect_foot_v03_streamlit.py   # Application web principale (v0.3)
+├── streamlit_app.py                    # App de test (déploiement Streamlit Cloud)
+├── libreselect_foot_v03_streamlit.py   # Version complète v0.3
 ├── LICENSE                             # Licence non-commerciale
 ├── README.md
 └── (futurs) data/, models/, etc.
