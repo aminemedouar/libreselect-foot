@@ -15,8 +15,11 @@ num_generations = st.sidebar.slider("Générations", 10, 200, 50)
 if st.button("🚀 Lancer l'Optimisation IA"):
     with st.spinner("Calcul en cours..."):
         players = get_team_players(country)
-        best_team = run_genetic_algorithm(players, num_generations)
-        st.success("✅ Sélection optimale trouvée !")
-        st.json(best_team)
+        if not players:
+            st.error("Aucun joueur disponible pour ce pays pour le moment.")
+        else:
+            best_team = run_genetic_algorithm(players, num_generations)
+            st.success("✅ Sélection optimale trouvée !")
+            st.json(best_team)
 
 st.info("Application en cours de migration vers Streamlit Cloud. Version complète bientôt !")

@@ -435,13 +435,25 @@ def run_genetic_algorithm(players_data: List[Dict], generations: int = 50):
             defense=p["def"],
             physical=p["phys"],
             country="Selection",
-            overall=p.get("rating"),
+            overall=p.get("rating", 0),
         )
         for p in players_data
     ]
 
     optimizer = SelectionOptimizer(players)
-    best_squad = optimizer.select_best_squad()
+    opponent_players = sorted(players, key=lambda player: player.overall, reverse=True)[:11]
+    opponent_team = Team(
+        name="Adversaire",
+        players=opponent_players,
+        formation="4-3-3",
+        tactic=TacticsRecommendationEngine.TACTICS[1],
+    )
+    best_squad, _, _ = optimizer.genetic_algorithm_selection(
+        opponent_team=opponent_team,
+        tactics_to_test=TacticsRecommendationEngine.TACTICS,
+        generations=max(1, generations // 10),
+        population_size=10,
+    )
     best_xi = sorted(best_squad, key=lambda player: player.overall, reverse=True)[:11]
 
     return {
