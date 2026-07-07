@@ -84,15 +84,19 @@ def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
     return players_dataframe(players).sort_values(["Poste", "Note"], ascending=[True, False])
 
 
+def average_player_attribute(players: list[Player], attribute: str) -> float:
+    return round(sum(getattr(player, attribute) for player in players) / len(players), 1)
+
+
 def team_profile(team: Team) -> dict[str, float]:
     return {
         "Note moyenne": round(team.overall_rating, 1),
-        "Vitesse": round(sum(player.pace for player in team.players) / len(team.players), 1),
-        "Passe": round(sum(player.passing for player in team.players) / len(team.players), 1),
-        "Dribble": round(sum(player.dribbling for player in team.players) / len(team.players), 1),
-        "Tir": round(sum(player.shooting for player in team.players) / len(team.players), 1),
-        "Défense": round(sum(player.defense for player in team.players) / len(team.players), 1),
-        "Physique": round(sum(player.physical for player in team.players) / len(team.players), 1),
+        "Vitesse": average_player_attribute(team.players, "pace"),
+        "Passe": average_player_attribute(team.players, "passing"),
+        "Dribble": average_player_attribute(team.players, "dribbling"),
+        "Tir": average_player_attribute(team.players, "shooting"),
+        "Défense": average_player_attribute(team.players, "defense"),
+        "Physique": average_player_attribute(team.players, "physical"),
     }
 
 
@@ -146,20 +150,18 @@ def simulate_match_result(
     return home_team, away_team, home_score, away_score, events
 
 
+def shootout_score(team: Team) -> float:
+    return round(sum(player.shooting + player.physical for player in team.players) / len(team.players), 2)
+
+
 def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, away_score: int) -> tuple[str, str]:
     if home_score > away_score:
         return home_team.name, "Victoire dans le temps réglementaire"
     if away_score > home_score:
         return away_team.name, "Victoire dans le temps réglementaire"
 
-    home_shootout_score = round(
-        sum(player.shooting + player.physical for player in home_team.players) / len(home_team.players),
-        2,
-    )
-    away_shootout_score = round(
-        sum(player.shooting + player.physical for player in away_team.players) / len(away_team.players),
-        2,
-    )
+    home_shootout_score = shootout_score(home_team)
+    away_shootout_score = shootout_score(away_team)
 
     if home_shootout_score >= away_shootout_score:
         return home_team.name, "Victoire aux tirs au but"
