@@ -195,7 +195,9 @@ def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, a
 
 def simulate_tournament(country_names: list[str], seed: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     if len(country_names) < MIN_TOURNAMENT_TEAMS:
-        raise ValueError("Au moins 4 sélections sont nécessaires pour simuler un tournoi complet.")
+        raise ValueError(
+            f"Au moins {MIN_TOURNAMENT_TEAMS} sélections sont nécessaires pour simuler un tournoi complet."
+        )
 
     standings = {
         country: {
@@ -431,7 +433,7 @@ def render_tournament_tab(countries: list[str]) -> None:
     selected_countries = st.multiselect(
         "Sélections engagées",
         countries,
-        default=countries[:4],
+        default=countries[:MIN_TOURNAMENT_TEAMS],
         max_selections=min(MAX_TOURNAMENT_TEAMS, len(countries)),
     )
     seed = st.number_input(
@@ -442,8 +444,8 @@ def render_tournament_tab(countries: list[str]) -> None:
         key="tournament_seed",
     )
 
-    if len(selected_countries) < 4:
-        st.info("Choisis au moins 4 sélections pour lancer le tournoi.")
+    if len(selected_countries) < MIN_TOURNAMENT_TEAMS:
+        st.info(f"Choisis au moins {MIN_TOURNAMENT_TEAMS} sélections pour lancer le tournoi.")
         return
 
     if st.button("🏁 Lancer le tournoi"):
