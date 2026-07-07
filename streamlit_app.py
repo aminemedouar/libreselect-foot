@@ -11,6 +11,8 @@ from national_teams_db import get_team, list_countries
 # Suggested default seeds so repeated local smoke tests stay reproducible.
 RECOMMENDED_MATCH_SEED = 7
 RECOMMENDED_TOURNAMENT_SEED = 21
+SHOOTOUT_ATTRIBUTE_COUNT = 2
+MIN_TOURNAMENT_TEAMS = 4
 MAX_TOURNAMENT_TEAMS = 8
 DEFAULT_COUNTRY_SELECTION_COUNT = 3
 
@@ -51,7 +53,7 @@ def build_team(country_name: str) -> Team | None:
     )
 
 
-def clone_team(country_name: str, tactic_name: str | None = None) -> Team:
+def build_team_with_tactic(country_name: str, tactic_name: str | None = None) -> Team:
     base_team = build_team(country_name)
     if base_team is None:
         raise ValueError(f"Équipe introuvable: {country_name}")
@@ -92,14 +94,14 @@ def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
     return players_dataframe(players).sort_values(["Poste", "Note"], ascending=[True, False])
 
 
-def average_values(values: list[float], precision: int = 1) -> float:
+def rounded_mean(values: list[float], precision: int = 1) -> float:
     if not values:
         return 0.0
     return round(mean(values), precision)
 
 
 def average_player_attribute(players: list[Player], attribute: str) -> float:
-    return average_values([getattr(player, attribute) for player in players])
+    return rounded_mean([getattr(player, attribute) for player in players])
 
 
 def team_profile(team: Team) -> dict[str, float]:
@@ -116,7 +118,8 @@ def team_profile(team: Team) -> dict[str, float]:
 
 def team_profile_chart(team: Team) -> pd.DataFrame:
     profile = team_profile(team)
-    return pd.DataFrame({"Valeur": list(profile.values())[1:]}, index=list(profile.keys())[1:])
+    chart_profile = {label: value for label, value in profile.items() if label != "Note moyenne"}
+    return pd.DataFrame({"Valeur": list(chart_profile.values())}, index=list(chart_profile.keys()))
 
 
 def position_distribution(team: Team) -> pd.DataFrame:
@@ -157,8 +160,8 @@ def simulate_match_result(
     away_tactic_name: str | None = None,
     seed: int | None = None,
 ) -> tuple[Team, Team, int, int, list[str]]:
-    home_team = clone_team(home_country, home_tactic_name)
-    away_team = clone_team(away_country, away_tactic_name)
+    home_team = build_team_with_tactic(home_country, home_tactic_name)
+    away_team = build_team_with_tactic(away_country, away_tactic_name)
     simulator = MatchSimulator(home_team, away_team, seed=seed)
     home_score, away_score, events = simulator.simulate()
     return home_team, away_team, home_score, away_score, events
@@ -167,7 +170,7 @@ def simulate_match_result(
 def calculate_shootout_rating(team: Team) -> float:
     shooting = average_player_attribute(team.players, "shooting")
     physical = average_player_attribute(team.players, "physical")
-    return round((shooting + physical) / 2, 2)
+    return round((shooting + physical) / SHOOTOUT_ATTRIBUTE_COUNT, 2)
 
 
 def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, away_score: int) -> tuple[str, str]:
@@ -191,7 +194,7 @@ def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, a
 
 
 def simulate_tournament(country_names: list[str], seed: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
-    if len(country_names) < 4:
+    if len(country_names) < MIN_TOURNAMENT_TEAMS:
         raise ValueError("Au moins 4 sélections sont nécessaires pour simuler un tournoi complet.")
 
     standings = {
@@ -307,11 +310,7 @@ def render_overview(countries: list[str]) -> None:
 def render_players_tab(countries: list[str]) -> None:
     st.subheader("🏟️ Base de joueurs")
     all_players = list_all_players()
-    default_country_selection = (
-        countries[:DEFAULT_COUNTRY_SELECTION_COUNT]
-        if len(countries) >= DEFAULT_COUNTRY_SELECTION_COUNT
-        else countries
-    )
+    default_country_selection = countries[:DEFAULT_COUNTRY_SELECTION_COUNT]
     selected_countries = st.multiselect("Pays", countries, default=default_country_selection)
     positions = st.multiselect("Postes", ["GK", "DEF", "MID", "FWD"], default=["GK", "DEF", "MID", "FWD"])
     min_rating = st.slider("Note minimum", min_value=0, max_value=100, value=80)
@@ -335,8 +334,8 @@ def render_optimization_tab(countries: list[str]) -> None:
     available_opponents = [country for country in countries if country != selected_country]
     selected_opponent = st.selectbox("Adversaire à analyser", available_opponents, key="opt_opponent")
 
-    selected_team = clone_team(selected_country)
-    opponent_team = clone_team(selected_opponent)
+    selected_team = build_team_with_tactic(selected_country)
+    opponent_team = build_team_with_tactic(selected_opponent)
 
     left_col, right_col = st.columns(2)
     with left_col:
@@ -459,7 +458,7 @@ def render_tournament_tab(countries: list[str]) -> None:
 def render_visualizations_tab(countries: list[str]) -> None:
     st.subheader("📊 Visualisations")
     selected_country = st.selectbox("Pays à visualiser", countries, key="viz_country")
-    selected_team = clone_team(selected_country)
+    selected_team = build_team_with_tactic(selected_country)
 
     profile_col, position_col = st.columns(2)
     with profile_col:
