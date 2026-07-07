@@ -7,6 +7,10 @@ from ai_tactics_engine import MatchReport, MatchSimulator, Player, TacticsRecomm
 from national_teams_db import get_team, list_countries
 
 
+DEFAULT_MATCH_SEED = 7
+DEFAULT_TOURNAMENT_SEED = 21
+
+
 @st.cache_data
 def build_players(country_name: str) -> list[Player]:
     team_data = get_team(country_name)
@@ -84,13 +88,19 @@ def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
     return players_dataframe(players).sort_values(["Poste", "Note"], ascending=[True, False])
 
 
+def average_values(values: list[float], precision: int = 1) -> float:
+    if not values:
+        return 0.0
+    return round(sum(values) / len(values), precision)
+
+
 def average_player_attribute(players: list[Player], attribute: str) -> float:
-    return round(sum(getattr(player, attribute) for player in players) / len(players), 1)
+    return average_values([getattr(player, attribute) for player in players])
 
 
 def team_profile(team: Team) -> dict[str, float]:
     return {
-        "Note moyenne": round(team.overall_rating, 1),
+        "Note moyenne": round(team.overall_rating, 1) if team.players else 0.0,
         "Vitesse": average_player_attribute(team.players, "pace"),
         "Passe": average_player_attribute(team.players, "passing"),
         "Dribble": average_player_attribute(team.players, "dribbling"),
@@ -151,7 +161,7 @@ def simulate_match_result(
 
 
 def shootout_score(team: Team) -> float:
-    return round(sum(player.shooting + player.physical for player in team.players) / len(team.players), 2)
+    return average_values([player.shooting + player.physical for player in team.players], precision=2)
 
 
 def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, away_score: int) -> tuple[str, str]:
@@ -280,7 +290,7 @@ def render_overview(countries: list[str]) -> None:
 def render_players_tab(countries: list[str]) -> None:
     st.subheader("🏟️ Base de joueurs")
     all_players = list_all_players()
-    selected_countries = st.multiselect("Pays", countries, default=countries[:3])
+    selected_countries = st.multiselect("Pays", countries, default=countries[: min(3, len(countries))])
     positions = st.multiselect("Postes", ["GK", "DEF", "MID", "FWD"], default=["GK", "DEF", "MID", "FWD"])
     min_rating = st.slider("Note minimum", min_value=0, max_value=100, value=80)
 
@@ -374,7 +384,7 @@ def render_match_tab(countries: list[str]) -> None:
     tactic_names = [tactic.name for tactic in TacticsRecommendationEngine.TACTICS]
     home_tactic = st.selectbox("Tactique domicile", ["Tactique par défaut"] + tactic_names, key="home_tactic")
     away_tactic = st.selectbox("Tactique extérieur", ["Tactique par défaut"] + tactic_names, key="away_tactic")
-    seed = st.number_input("Seed de simulation", min_value=0, value=7, step=1)
+    seed = st.number_input("Seed de simulation", min_value=0, value=DEFAULT_MATCH_SEED, step=1)
 
     if st.button("🎮 Simuler le match"):
         home_team, away_team, home_score, away_score, events = simulate_match_result(
@@ -402,7 +412,13 @@ def render_tournament_tab(countries: list[str]) -> None:
         default=countries[:4],
         max_selections=min(8, len(countries)),
     )
-    seed = st.number_input("Seed du tournoi", min_value=0, value=21, step=1, key="tournament_seed")
+    seed = st.number_input(
+        "Seed du tournoi",
+        min_value=0,
+        value=DEFAULT_TOURNAMENT_SEED,
+        step=1,
+        key="tournament_seed",
+    )
 
     if len(selected_countries) < 4:
         st.info("Choisis au moins 4 sélections pour lancer le tournoi.")
@@ -446,7 +462,7 @@ def main() -> None:
     countries = list_countries()
 
     st.title("⚽ LibreSelect Foot")
-    st.markdown("**Optimiseur IA de Sélections nationales**")
+    st.markdown("**Optimiseur IA de Sélections Nationales**")
     st.caption("Application activée : données, optimisation IA, simulation de match, tournoi et visualisations.")
 
     if len(countries) < 2:
