@@ -9,6 +9,7 @@ from national_teams_db import get_team, list_countries
 
 DEFAULT_MATCH_SEED = 7
 DEFAULT_TOURNAMENT_SEED = 21
+MAX_TOURNAMENT_TEAMS = 8
 
 
 @st.cache_data
@@ -160,7 +161,7 @@ def simulate_match_result(
     return home_team, away_team, home_score, away_score, events
 
 
-def shootout_score(team: Team) -> float:
+def calculate_shootout_strength(team: Team) -> float:
     return average_values([player.shooting + player.physical for player in team.players], precision=2)
 
 
@@ -170,8 +171,8 @@ def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, a
     if away_score > home_score:
         return away_team.name, "Victoire dans le temps réglementaire"
 
-    home_shootout_score = shootout_score(home_team)
-    away_shootout_score = shootout_score(away_team)
+    home_shootout_score = calculate_shootout_strength(home_team)
+    away_shootout_score = calculate_shootout_strength(away_team)
 
     if home_shootout_score >= away_shootout_score:
         return home_team.name, "Victoire aux tirs au but"
@@ -193,7 +194,7 @@ def simulate_tournament(country_names: list[str], seed: int | None = None) -> tu
         }
         for country in country_names
     }
-    match_seed = seed or 0
+    match_seed = seed if seed is not None else 0
 
     for home_country, away_country in combinations(country_names, 2):
         home_team, away_team, home_score, away_score, _ = simulate_match_result(
@@ -290,7 +291,7 @@ def render_overview(countries: list[str]) -> None:
 def render_players_tab(countries: list[str]) -> None:
     st.subheader("🏟️ Base de joueurs")
     all_players = list_all_players()
-    selected_countries = st.multiselect("Pays", countries, default=countries[: min(3, len(countries))])
+    selected_countries = st.multiselect("Pays", countries, default=countries[:3])
     positions = st.multiselect("Postes", ["GK", "DEF", "MID", "FWD"], default=["GK", "DEF", "MID", "FWD"])
     min_rating = st.slider("Note minimum", min_value=0, max_value=100, value=80)
 
@@ -303,6 +304,7 @@ def render_players_tab(countries: list[str]) -> None:
     st.dataframe(filtered, width="stretch", hide_index=True)
 
     if not filtered.empty:
+        st.caption("Moyenne des notes par pays")
         st.bar_chart(filtered.groupby("Pays")["Note"].mean().sort_values(ascending=False))
 
 
@@ -410,7 +412,7 @@ def render_tournament_tab(countries: list[str]) -> None:
         "Sélections engagées",
         countries,
         default=countries[:4],
-        max_selections=min(8, len(countries)),
+        max_selections=min(MAX_TOURNAMENT_TEAMS, len(countries)),
     )
     seed = st.number_input(
         "Seed du tournoi",
