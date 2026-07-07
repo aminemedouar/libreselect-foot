@@ -7,8 +7,9 @@ from ai_tactics_engine import MatchReport, MatchSimulator, Player, TacticsRecomm
 from national_teams_db import get_team, list_countries
 
 
-DEFAULT_MATCH_SEED = 7
-DEFAULT_TOURNAMENT_SEED = 21
+# Suggested default seeds so repeated local smoke tests stay reproducible.
+RECOMMENDED_MATCH_SEED = 7
+RECOMMENDED_TOURNAMENT_SEED = 21
 MAX_TOURNAMENT_TEAMS = 8
 
 
@@ -92,7 +93,7 @@ def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
 def average_values(values: list[float], precision: int = 1) -> float:
     if not values:
         return 0.0
-    return round(sum(values) / len(values), precision)
+    return round(float(pd.Series(values, dtype="float64").mean()), precision)
 
 
 def average_player_attribute(players: list[Player], attribute: str) -> float:
@@ -162,7 +163,9 @@ def simulate_match_result(
 
 
 def calculate_shootout_strength(team: Team) -> float:
-    return average_values([player.shooting + player.physical for player in team.players], precision=2)
+    shooting = average_player_attribute(team.players, "shooting")
+    physical = average_player_attribute(team.players, "physical")
+    return round((shooting + physical) / 2, 2)
 
 
 def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, away_score: int) -> tuple[str, str]:
@@ -174,12 +177,21 @@ def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, a
     home_shootout_score = calculate_shootout_strength(home_team)
     away_shootout_score = calculate_shootout_strength(away_team)
 
-    if home_shootout_score >= away_shootout_score:
+    if home_shootout_score > away_shootout_score:
         return home_team.name, "Victoire aux tirs au but"
-    return away_team.name, "Victoire aux tirs au but"
+    if away_shootout_score > home_shootout_score:
+        return away_team.name, "Victoire aux tirs au but"
+    if home_team.overall_rating > away_team.overall_rating:
+        return home_team.name, "Victoire aux tirs au but"
+    if away_team.overall_rating > home_team.overall_rating:
+        return away_team.name, "Victoire aux tirs au but"
+    return sorted([home_team.name, away_team.name])[0], "Victoire aux tirs au but"
 
 
 def simulate_tournament(country_names: list[str], seed: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if len(country_names) < 4:
+        raise ValueError("Au moins 4 sélections sont nécessaires pour simuler un tournoi complet.")
+
     standings = {
         country: {
             "Équipe": country,
@@ -236,8 +248,11 @@ def simulate_tournament(country_names: list[str], seed: int | None = None) -> tu
     semifinalists = standings_df.head(4)["Équipe"].tolist()
     knockout_rows = []
 
-    semi_1 = simulate_match_result(semifinalists[0], semifinalists[3], seed=match_seed)
-    match_seed += 1
+    semi_1_seed = match_seed
+    semi_2_seed = match_seed + 1
+    final_seed = match_seed + 2
+
+    semi_1 = simulate_match_result(semifinalists[0], semifinalists[3], seed=semi_1_seed)
     semi_1_winner, semi_1_decision = resolve_knockout_winner(*semi_1[:2], semi_1[2], semi_1[3])
     knockout_rows.append(
         {
@@ -249,8 +264,7 @@ def simulate_tournament(country_names: list[str], seed: int | None = None) -> tu
         }
     )
 
-    semi_2 = simulate_match_result(semifinalists[1], semifinalists[2], seed=match_seed)
-    match_seed += 1
+    semi_2 = simulate_match_result(semifinalists[1], semifinalists[2], seed=semi_2_seed)
     semi_2_winner, semi_2_decision = resolve_knockout_winner(*semi_2[:2], semi_2[2], semi_2[3])
     knockout_rows.append(
         {
@@ -262,7 +276,7 @@ def simulate_tournament(country_names: list[str], seed: int | None = None) -> tu
         }
     )
 
-    final_match = simulate_match_result(semi_1_winner, semi_2_winner, seed=match_seed)
+    final_match = simulate_match_result(semi_1_winner, semi_2_winner, seed=final_seed)
     final_winner, final_decision = resolve_knockout_winner(*final_match[:2], final_match[2], final_match[3])
     knockout_rows.append(
         {
@@ -291,7 +305,8 @@ def render_overview(countries: list[str]) -> None:
 def render_players_tab(countries: list[str]) -> None:
     st.subheader("🏟️ Base de joueurs")
     all_players = list_all_players()
-    selected_countries = st.multiselect("Pays", countries, default=countries[:3])
+    default_country_selection = countries[:3] if len(countries) >= 3 else countries
+    selected_countries = st.multiselect("Pays", countries, default=default_country_selection)
     positions = st.multiselect("Postes", ["GK", "DEF", "MID", "FWD"], default=["GK", "DEF", "MID", "FWD"])
     min_rating = st.slider("Note minimum", min_value=0, max_value=100, value=80)
 
@@ -386,7 +401,7 @@ def render_match_tab(countries: list[str]) -> None:
     tactic_names = [tactic.name for tactic in TacticsRecommendationEngine.TACTICS]
     home_tactic = st.selectbox("Tactique domicile", ["Tactique par défaut"] + tactic_names, key="home_tactic")
     away_tactic = st.selectbox("Tactique extérieur", ["Tactique par défaut"] + tactic_names, key="away_tactic")
-    seed = st.number_input("Seed de simulation", min_value=0, value=DEFAULT_MATCH_SEED, step=1)
+    seed = st.number_input("Seed de simulation", min_value=0, value=RECOMMENDED_MATCH_SEED, step=1)
 
     if st.button("🎮 Simuler le match"):
         home_team, away_team, home_score, away_score, events = simulate_match_result(
@@ -417,7 +432,7 @@ def render_tournament_tab(countries: list[str]) -> None:
     seed = st.number_input(
         "Seed du tournoi",
         min_value=0,
-        value=DEFAULT_TOURNAMENT_SEED,
+        value=RECOMMENDED_TOURNAMENT_SEED,
         step=1,
         key="tournament_seed",
     )
