@@ -1,4 +1,5 @@
 from itertools import combinations
+from statistics import mean
 
 import pandas as pd
 import streamlit as st
@@ -11,6 +12,7 @@ from national_teams_db import get_team, list_countries
 RECOMMENDED_MATCH_SEED = 7
 RECOMMENDED_TOURNAMENT_SEED = 21
 MAX_TOURNAMENT_TEAMS = 8
+DEFAULT_COUNTRY_SELECTION_COUNT = 3
 
 
 @st.cache_data
@@ -93,7 +95,7 @@ def sorted_players_dataframe(players: list[Player]) -> pd.DataFrame:
 def average_values(values: list[float], precision: int = 1) -> float:
     if not values:
         return 0.0
-    return round(float(pd.Series(values, dtype="float64").mean()), precision)
+    return round(mean(values), precision)
 
 
 def average_player_attribute(players: list[Player], attribute: str) -> float:
@@ -162,7 +164,7 @@ def simulate_match_result(
     return home_team, away_team, home_score, away_score, events
 
 
-def calculate_shootout_strength(team: Team) -> float:
+def calculate_shootout_rating(team: Team) -> float:
     shooting = average_player_attribute(team.players, "shooting")
     physical = average_player_attribute(team.players, "physical")
     return round((shooting + physical) / 2, 2)
@@ -174,8 +176,8 @@ def resolve_knockout_winner(home_team: Team, away_team: Team, home_score: int, a
     if away_score > home_score:
         return away_team.name, "Victoire dans le temps réglementaire"
 
-    home_shootout_score = calculate_shootout_strength(home_team)
-    away_shootout_score = calculate_shootout_strength(away_team)
+    home_shootout_score = calculate_shootout_rating(home_team)
+    away_shootout_score = calculate_shootout_rating(away_team)
 
     if home_shootout_score > away_shootout_score:
         return home_team.name, "Victoire aux tirs au but"
@@ -305,7 +307,11 @@ def render_overview(countries: list[str]) -> None:
 def render_players_tab(countries: list[str]) -> None:
     st.subheader("🏟️ Base de joueurs")
     all_players = list_all_players()
-    default_country_selection = countries[:3] if len(countries) >= 3 else countries
+    default_country_selection = (
+        countries[:DEFAULT_COUNTRY_SELECTION_COUNT]
+        if len(countries) >= DEFAULT_COUNTRY_SELECTION_COUNT
+        else countries
+    )
     selected_countries = st.multiselect("Pays", countries, default=default_country_selection)
     positions = st.multiselect("Postes", ["GK", "DEF", "MID", "FWD"], default=["GK", "DEF", "MID", "FWD"])
     min_rating = st.slider("Note minimum", min_value=0, max_value=100, value=80)
